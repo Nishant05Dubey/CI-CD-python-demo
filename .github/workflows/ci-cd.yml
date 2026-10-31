@@ -39,11 +39,32 @@ jobs:
       - name: Start test container
         run: docker run -d --name python-cicd-test -p 8000:5000 python-cicd-app:test
 
-      # Stage 4: Retry while Flask starts, then verify the healthy JSON response.
+      
+      # Stage 4: Wait for Flask and verify the health endpoint.
       - name: Check container health
         run: |
-          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 http://localhost:8000/health -o health.json
-          python -c 'import json; assert json.load(open("health.json")) == {"status": "healthy"}'
+          for attempt in {1..15}; do
+            echo "Health check attempt $attempt of 15"
+
+            if curl --fail --silent http://127.0.0.1:8000/health -o health.json; then
+              cat health.json
+              python -c 'import json; from pathlib import Path; assert json.loads(Path("health.json").read_text()) == {"status": "healthy"}'
+              echo "Application is healthy!"
+              exit 0
+            fi
+
+            echo "Application is not ready yet. Retrying in 2 seconds..."
+            sleep 2
+          done
+
+          echo "Health check failed. Inspecting container..."
+
+          docker ps -a
+          docker inspect python-cicd-test --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' || true
+          docker logs python-cicd-test || true
+
+          exit 1
+
 
       # Stage 5: Show diagnostics on failure and always remove the test container.
       - name: Show container logs on failure
