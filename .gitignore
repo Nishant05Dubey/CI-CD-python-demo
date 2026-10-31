@@ -1,0 +1,22 @@
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local secrets, logs, and editor settings
+.env
+.env.*
+*.log
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
